@@ -111,3 +111,53 @@ def accuracy(weights, test_x, test_labels):
 
 accuracy(wts, test_x, test_labels)
 
+def train_graph(positive_examples, negative_examples, num_iterations = 100):
+    num_dims = positive_examples.shape[1]
+    weights = np.zeros((num_dims, 1)) # initialize weights
+
+    pos_count = positive_examples.shape[0]
+    neg_count = negative_examples.shape[0]
+
+    report_frequency = 15
+    snapshots = []
+
+    for i in range(num_iterations):
+        pos = random.choice(positive_examples)
+        neg = random.choice(negative_examples)
+
+        z = np.dot(pos, weights)
+        if z < 0:
+            weights = weights + pos.reshape(weights.shape)
+
+        z = np.dot(neg, weights)
+        if z > 0:
+            weights = weights - neg.reshape(weights.shape)
+
+        if i % report_frequency == 0:
+            pos_out = np.dot(positive_examples, weights)
+            neg_out = np.dot(negative_examples, weights)
+            pos_correct = (pos_out >= 0).sum() / float(pos_count)
+            neg_correct = (neg_out < 0).sum() / float(neg_count)
+            # make correction a list so it is homogeneous to weights list then numpy array accepts
+
+            snapshots.append((np.concatenate(weights), [(pos_correct+neg_correct)/2.0,0,0]))
+
+    return np.array(snapshots)
+
+snapshots = train_graph(pos_examples, neg_examples)
+
+def plotit(pos_examples, neg_examples, snapshots, step):
+    fig = pylab.figure(figsize=(10, 4))
+    fig.add_subplot(1, 2, 1)
+    plot_boundary(pos_examples, neg_examples, snapshots[step][0])
+    fig.add_subplot(1,2,2)
+    pylab.plot(np.arange(len(snapshots[:,1])), snapshots[:, 1])
+    pylab.ylabel('Accuracy')
+    pylab.xlabel('Iteration')
+    pylab.plot(step, snapshots[step, 1][0], 'bo')
+    pylab.show()
+
+def pl1(step): plotit(pos_examples, neg_examples, snapshots, step)
+
+interact(pl1, step=widgets.IntSlider(value=0, min=0, max=len(snapshots) - 1))
+
